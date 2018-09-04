@@ -1,0 +1,12 @@
+{
+    "token": "",
+    "project_id": "",
+    "username": "",
+    "status": {
+        "todo": "",
+        "in_progress": "",
+        "done": ""
+    },
+    "serial_port": "/dev/ttyUSB0",
+    "account_url": ""
+}

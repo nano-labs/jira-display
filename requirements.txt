@@ -1,0 +1,4 @@
+jira==2.0.0
+Pillow==5.1.0
+requests==2.19.1
+pyserial==3.4
