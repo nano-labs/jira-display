@@ -1,3 +1,4 @@
+import atexit
 import json
 from datetime import datetime, timedelta
 from time import sleep
@@ -95,8 +96,9 @@ class JiraAPI:
 
     def add_time(self, issue, seconds):
         """Add worklog time to a issue."""
-        pass
-        # self.jira_api.add_worklog(issue, timeSpent="1", timeSpentSeconds=seconds)
+        seconds = max(int(seconds), 60)
+        info_log("Add {} seconds to worklog to {}".format(seconds, issue))
+        self.jira_api.add_worklog(issue.id, adjustEstimate="auto", timeSpentSeconds=seconds)
 
 
 class Display:
@@ -111,7 +113,16 @@ class Display:
         self.current_screen = 'splash'
         self._image = None
         self.blinking = False
+        self.blink_colon = False
         self._manager = manager
+
+    def register_time(self):
+        if self.issue and self.issue.fields.status.id == self.in_progress_status:
+            delta = (datetime.now() - self.start_time).total_seconds()
+            self._manager.api.add_time(self.issue, delta)
+            self.issue = self._manager.api.get_issue(self.issue.key)
+            self._manager.refresh_issues()
+            self.start_time = datetime.now()
 
     def update(self):
         if self.current_screen == 'issue_selection':
@@ -121,17 +132,25 @@ class Display:
                 issue_text = "{}: {}".format(self.issue_preview.key,
                                              self.issue_preview.fields.summary)
             self._image = DisplayText(issue_text).image
+
         elif self.current_screen == "issue":
             if self.issue.fields.status.id == self.in_progress_status:
                 state = "running"
                 elapsed = self.issue.fields.timespent or 0
-                elapsed = (datetime.now() + timedelta(minutes=elapsed)) - self.start_time
+                elapsed = (datetime.now() + timedelta(seconds=elapsed)) - self.start_time
                 elapsed = elapsed.total_seconds()
-                if elapsed >= 60:
+                if (datetime.now() - self.start_time).total_seconds() >= 30 * 60:
+                    self._manager.waiting_ack = True
                     self.blinking = not self.blinking
+                clock = "{:02d}:{:02d}".format(int(elapsed / 60), int(elapsed % 60))
                 if elapsed >= 60 * 60:  # one hour
                     elapsed = int(elapsed / 60)  # this variable become minutes
-                clock = "{:02d}:{:02d}".format(int(elapsed / 60), int(elapsed % 60))
+                    self.blink_colon = not self.blink_colon
+                    clock = "{:02d}{}{:02d}".format(
+                        int(elapsed / 60),
+                        ";:"[self.blink_colon],
+                        int(elapsed % 60)
+                    )
             else:
                 state = "paused"
                 clock = None
@@ -188,11 +207,14 @@ class Manager:
         self.config = config
         self.api = JiraAPI(config)
         self.serial = serial.Serial(config['serial_port'], 57600, timeout=1)
+        # self.serial = serial.Serial(config['serial_port'], 9600, timeout=1)
         self.issues = []
         self.display = Display(config, manager=self)
         self.clock = 10  # Hz
         self.timers = Timers()
         self.last_message = ("", datetime.now())
+        self.waiting_ack = False
+        self._last_iteration = datetime.now()
 
     def start(self):
         self.update_display()
@@ -244,7 +266,7 @@ class Manager:
                 self.display.issue = self.display.issue_preview
                 self.display.start_time = datetime.now()
                 self.display.current_screen = "issue"
-                self.update_display_every(1)
+                self.update_display_every(0.85)
             else:
                 self.timers.remove_by_tag("display_update")
                 self.update_display()
@@ -254,17 +276,20 @@ class Manager:
             # Start a task
             if self.display.issue.fields.status.id != self.api.in_progress_status:
                 self.api.start_issue(self.display.issue)
+                self.display.start_time = datetime.now()
 
             # Stop a task
             else:
-                self.api.change_status(self.display.issue, self.api.todo_status)
-                self.api.add_time(
-                    self.display.issue,
-                    (datetime.now() - self.display.start_time).total_seconds()
-                )
-                self.timers.remove_by_tag("display_update")
+                if self.waiting_ack:
+                    self.display.register_time()
+                    self.waiting_ack = False
+                    self.display.blinking = False
+                else:
+                    self.api.change_status(self.display.issue, self.api.todo_status)
+                    self.display.register_time()
+                    self.timers.remove_by_tag("display_update")
             self.refresh_issues()
-            self.update_display_every(1)
+            self.update_display_every(0.85)
 
     def update_display_every(self, seconds):
         next_job_time = datetime.now() + timedelta(seconds=seconds)
@@ -278,21 +303,41 @@ class Manager:
         self.display.update()
         if self.display._image:
             self.serial.write(b'I')
-            num_bytes = 0
+            image_bytes = bytearray()
             bit_position = 0
             binary = ''
             for pixel in self.display._image.getdata():
                 bit_position += 1
                 binary += str(int(pixel > 0))
                 if bit_position == 8:
-                    binary += "i"
-                    self.serial.write(binary.encode())
+                    # print(int(binary, 2), binary, bytes([int(binary, 2)]))
+                    self.serial.write(bytes([int(binary, 2)]))
+                    # print(self.serial.read_until())
+                    # image_bytes.append(int(binary, 2))
                     bit_position = 0
                     binary = ''
-                    num_bytes += 1
+            # self.serial.write('i')
+            # print(image_bytes)
+            # self.serial.write(image_bytes)
+            # import logging; logging.getLogger().setLevel(logging.INFO);from pprint import pprint as pp; import ipdb; ipdb.set_trace()
+
+            # num_bytes = 0
+            # bit_position = 0
+            # binary = ''
+            # for pixel in self.display._image.getdata():
+            #     bit_position += 1
+            #     binary += str(int(pixel > 0))
+            #     if bit_position == 8:
+            #         binary += "i"
+            #         self.serial.write(binary.encode())
+            #         bit_position = 0
+            #         binary = ''
+            #         num_bytes += 1
 
     def read_serial(self):
         message = self.serial.read_until().strip().decode()
+        if message:
+            print(message)
 
         # filter message noises
         if self.last_message[0] == message:
@@ -309,15 +354,22 @@ class Manager:
         elif message == "start":
             self.action_button()
 
-        if message:
-            print(message)
-
     def main_loop_iteration(self):
         self.read_serial()
         self.timers.execute()
 
+    def exit(self):
+        info_log("Shutting down")
+        self.display.register_time()
+        self.serial.close()
+
     def run(self):
         self.start()
+        atexit.register(self.exit)
         while True:
             self.main_loop_iteration()
-            sleep(1 / self.clock)
+            delay = (1 / self.clock) - (datetime.now() - self._last_iteration).total_seconds()
+            delay = delay if delay >= 0 else 1 / self.clock
+            sleep(delay)
+
+

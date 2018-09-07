@@ -71,6 +71,7 @@ void setup() {
   display.display();
 
   // start serial port at 9600 bps:
+//  Serial.begin(9600);
   Serial.begin(57600);
   while (!Serial) {
     ; // wait for serial port to connect. Needed for native USB port only
@@ -155,21 +156,9 @@ void loop() {
     startTriggered = 0;
   };
 
-  int bit_count = 0;
-  char binary_char[8];
   inByte = Serial.read();
   if (inByte == 73) {
-    int i = 0;
-    byte this_byte = 0;
-    while (i<512) { 
-      String binary;
-      const char term = 105;
-      binary = Serial.readStringUntil(term);
-      binary.toCharArray(binary_char, 9);
-
-      image_buffer[i] = readBinaryString(binary_char);
-      i++;
-    }
+    Serial.readBytes(image_buffer, 512);
     Serial.println("end_image");
     display.clearDisplay();
     display.drawBitmap(0, 0, image_buffer, 128, 32, WHITE);

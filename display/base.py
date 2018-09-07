@@ -114,6 +114,8 @@ class DisplayIssue(BaseDisplay):
         project_key, issue_code = issue.key.lower().split("-")
         if not clock:
             spent = issue.fields.timespent or 0
+            if spent >= 60 * 60:  # one hour
+                spent = int(spent / 60)  # this variable become minutes
             clock = "{:02d}:{:02d}".format(int(spent / 60), int(spent % 60))
 
         status_size = SMALL_DEFAULT_FONT.getsize(status)

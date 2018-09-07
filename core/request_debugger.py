@@ -13,7 +13,7 @@ from datetime import datetime
 import requests
 from requests import Session
 
-MAX_DEPTH = 3
+MAX_DEPTH = 1
 LOG = "log"
 CURL = "curl"
 REQUESTS = PYTHON = "python"

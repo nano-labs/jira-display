@@ -8,7 +8,6 @@ import traceback
 from core import error_log
 from core.base import Manager
 
-
 def screen_saver(config):
     """Because why not? Let's call it 'Benchmark'."""
     import serial
