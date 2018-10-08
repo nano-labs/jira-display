@@ -1,10 +1,13 @@
 from datetime import timedelta
+from os import path
 from PIL import Image, ImageDraw, ImageFont
 
-DEFAULT_FONT = ImageFont.truetype("display/default.ttf", 16)
-CLOCK_FONT = ImageFont.truetype("display/digital.ttf", 35)
-SMALL_DEFAULT_FONT = ImageFont.truetype("display/digital.ttf", 13)
-MEDIUM_DEFAULT_FONT = ImageFont.truetype("display/digital.ttf", 23)
+BASE_DIR = path.dirname(path.abspath(__file__))
+
+DEFAULT_FONT = ImageFont.truetype(path.join(BASE_DIR, "default.ttf"), 16)
+CLOCK_FONT = ImageFont.truetype(path.join(BASE_DIR, "digital.ttf"), 35)
+SMALL_DEFAULT_FONT = ImageFont.truetype(path.join(BASE_DIR, "digital.ttf"), 13)
+MEDIUM_DEFAULT_FONT = ImageFont.truetype(path.join(BASE_DIR, "digital.ttf"), 23)
 
 def image_to_hex(image):
     data = image.getdata()

@@ -1,0 +1,2 @@
+#!/usr/bin/env bash
+/home/fabio/envs/sentinel/bin/python /home/fabio/projects/jira-display/run.py

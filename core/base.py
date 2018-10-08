@@ -219,6 +219,10 @@ class Manager:
     def start(self):
         self.update_display()
         self.refresh_issues()
+        if self.issues:
+            self.display.current_screen = "issue"
+        else:
+            self.display.current_screen = "issue_selection"
         self.update_display()
 
     def refresh_issues(self):
@@ -231,6 +235,7 @@ class Manager:
             )
         else:
             self.display.issue = self.issues[0] if self.issues else None
+        self.issues = sorted(self.issues, key=lambda x: x.key)
 
     def navigate_next_issue(self, issues):
         self.timers.remove_by_tag("display_update")
@@ -310,29 +315,9 @@ class Manager:
                 bit_position += 1
                 binary += str(int(pixel > 0))
                 if bit_position == 8:
-                    # print(int(binary, 2), binary, bytes([int(binary, 2)]))
                     self.serial.write(bytes([int(binary, 2)]))
-                    # print(self.serial.read_until())
-                    # image_bytes.append(int(binary, 2))
                     bit_position = 0
                     binary = ''
-            # self.serial.write('i')
-            # print(image_bytes)
-            # self.serial.write(image_bytes)
-            # import logging; logging.getLogger().setLevel(logging.INFO);from pprint import pprint as pp; import ipdb; ipdb.set_trace()
-
-            # num_bytes = 0
-            # bit_position = 0
-            # binary = ''
-            # for pixel in self.display._image.getdata():
-            #     bit_position += 1
-            #     binary += str(int(pixel > 0))
-            #     if bit_position == 8:
-            #         binary += "i"
-            #         self.serial.write(binary.encode())
-            #         bit_position = 0
-            #         binary = ''
-            #         num_bytes += 1
 
     def read_serial(self):
         message = self.serial.read_until().strip().decode()

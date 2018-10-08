@@ -99,15 +99,6 @@ void toggleLed() {
 void establishContact() {
 }
 
-int readBinaryString(char *s) {
-  int result = 0;
-  while(*s) {
-    result <<= 1;
-    if(*s++ == '1') result |= 1;
-  }
-  return result;
-}
-
 void loop() {
   prevButtonState = digitalRead(prevButtonPin);
   if (prevButtonState == HIGH) {
