@@ -2,7 +2,9 @@
 # -*- coding: utf-8 -*-
 """Every time you don't DOC your code god kills a kitten."""
 
+from time import sleep
 from core.request_debugger import requests
+from serial import SerialException
 import json
 from os import path
 import traceback
@@ -17,7 +19,6 @@ def screen_saver(config):
     import serial
     from PIL import Image
     from PIL import GifImagePlugin
-    from time import sleep
     image = Image.open(path.join(BASE_DIR, "images/si.gif"))
     gif = []
     for frame in range(image.n_frames):
@@ -51,14 +52,30 @@ def main():
 
     # screen_saver(config)
 
+    def rotate_serial_port(config):
+        current_index = config["serial_ports"].index(config["serial_port"])
+        try:
+            next_port = config["serial_ports"][current_index + 1]
+        except IndexError:
+            next_port = config["serial_ports"][0]
+        config["serial_port"] = next_port
+        return config
+
     while True:
         try:
             manager = Manager(config)
             manager.start()
             manager.run()
+        except SerialException as exc:
+            error_log(exc)
+            error_log(traceback.format_exc())
+            config = rotate_serial_port(config)
+            error_log("Rotating to port {}".format(config["serial_port"]))
+            sleep(1)
         except Exception as exc:
             error_log(exc)
             error_log(traceback.format_exc())
+            sleep(1)
 
 
 if __name__ == '__main__':

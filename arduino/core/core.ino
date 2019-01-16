@@ -44,7 +44,7 @@ B00000000, B00000000, B00000000, B00000000, B00000000, B00000000, B00000000, B00
 };
 
 // constants won't change. They're used here to set pin numbers:
-const int prevButtonPin = 2;     // the number of the pushbutton pin
+const int prevButtonPin = 12;     // the number of the pushbutton pin
 const int nextButtonPin = 4;     // the number of the pushbutton pin
 const int startButtonPin = 7;     // the number of the pushbutton pin
 
@@ -77,7 +77,7 @@ void setup() {
     ; // wait for serial port to connect. Needed for native USB port only
   }
   establishContact();  // send a byte to establish contact until receiver responds
-
+  Serial.println("reset");
   
   pinMode(ledPin, OUTPUT);
   pinMode(prevButtonPin, INPUT);

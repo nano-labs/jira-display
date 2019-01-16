@@ -205,8 +205,8 @@ class Manager:
 
     def __init__(self, config):
         self.config = config
-        self.api = JiraAPI(config)
         self.serial = serial.Serial(config['serial_port'], 57600, timeout=1)
+        self.api = JiraAPI(config)
         # self.serial = serial.Serial(config['serial_port'], 9600, timeout=1)
         self.issues = []
         self.display = Display(config, manager=self)
@@ -338,6 +338,9 @@ class Manager:
 
         elif message == "start":
             self.action_button()
+
+        elif message == "reset":
+            self.start()
 
     def main_loop_iteration(self):
         self.read_serial()
